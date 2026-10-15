@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pool Water Log</title>
+  <style>
+    :root {
+      --bg: #f6f8fa;
+      --card: #ffffff;
+      --text: #1f2328;
+      --muted: #59636e;
+      --border: #d1d9e0;
+      --accent: #0969da;
+      --low-bg: #ddf4ff;
+      --low-text: #0550ae;
+      --high-bg: #ffebe9;
+      --high-text: #a40e26;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main { max-width: 1000px; margin: 0 auto; }
+    h1 { margin: 0 0 4px; font-size: 1.6rem; }
+    h2 { margin: 0 0 12px; font-size: 1.15rem; }
+    p.sub { margin: 0 0 20px; color: var(--muted); }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    input {
+      width: 100%;
+      padding: 8px;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    button {
+      padding: 8px 14px;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      cursor: pointer;
+    }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .message { font-size: 0.9rem; color: var(--high-text); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: right; white-space: nowrap; }
+    th:first-child, td:first-child { text-align: left; }
+    th { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+    td.low  { background: var(--low-bg);  color: var(--low-text);  font-weight: 600; }
+    td.high { background: var(--high-bg); color: var(--high-text); font-weight: 600; }
+    td.missing { color: var(--muted); }
+    .legend { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+    .legend span { padding: 2px 6px; border-radius: 4px; }
+    .legend .low  { background: var(--low-bg);  color: var(--low-text); }
+    .legend .high { background: var(--high-bg); color: var(--high-text); }
+    details summary { cursor: pointer; font-weight: 600; }
+    .range-row { display: grid; grid-template-columns: 1fr 90px 90px; gap: 8px; align-items: end; margin-top: 8px; }
+    .empty { color: var(--muted); padding: 12px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Pool Water Log</h1>
+  <p class="sub">Readings are saved in this browser only. Use Export CSV to keep a copy.</p>
+
+  <section>
+    <h2>Add a reading</h2>
+    <form id="entry-form">
+      <div class="grid" id="entry-fields">
+        <div>
+          <label for="f-date">Date</label>
+          <input type="date" id="f-date" required>
+        </div>
+        <!-- One input per reading is added here by the script below. -->
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary">Save reading</button>
+        <span class="message" id="entry-message"></span>
+      </div>
+    </form>
+  </section>
+
+  <section>
+    <h2>Readings (newest first)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="table-head"></tr></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="legend">
+      <span class="low">Blue</span> = below target range &nbsp;
+      <span class="high">Red</span> = above target range &nbsp;
+      Blank = not tested
+    </div>
+    <div class="actions">
+      <button type="button" id="export-btn">Export CSV</button>
+    </div>
+  </section>
+
+  <section>
+    <details>
+      <summary>Target range settings</summary>
+      <p class="sub" style="margin-top:8px">
+        These defaults are general guidance. Adjust them for your pool, your sanitizer, and your test kit.
+      </p>
+      <form id="settings-form">
+        <div id="range-fields"></div>
+        <div class="actions">
+          <button type="submit" class="primary">Save ranges</button>
+          <button type="button" id="reset-ranges">Reset to defaults</button>
+          <span class="message" id="settings-message"></span>
+        </div>
+      </form>
+    </details>
+  </section>
+</main>
+
+<!-- The range-check logic lives in its own file so it can be tested with node. -->
+<script src="ranges.js"></script>
+<script>
+  var FIELDS = PoolRanges.FIELDS;
+  var ENTRIES_KEY = 'poolTracker.entries';
+  var RANGES_KEY = 'poolTracker.ranges';
+
+  // ---------- Saving and loading (localStorage) ----------
+
+  function load(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function save(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      alert('Could not save. Your browser may be blocking local storage for this page.');
+      return false;
+    }
+  }
+
+  var entries = load(ENTRIES_KEY, []);
+  // Start from the defaults and lay any saved ranges on top, so a new field added later still has a range.
+  var ranges = Object.assign(PoolRanges.defaultRanges(), load(RANGES_KEY, {}));
+
+  // ---------- Building the form inputs ----------
+
+  function unitText(f) { return f.unit ? ' (' + f.unit + ')' : ''; }
+
+  var entryFields = document.getElementById('entry-fields');
+  FIELDS.forEach(function (f) {
+    var div = document.createElement('div');
+    div.innerHTML = '<label></label><input type="number" step="any" inputmode="decimal">';
+    div.querySelector('label').textContent = f.label + unitText(f);
+    div.querySelector('label').htmlFor = 'f-' + f.key;
+    div.querySelector('input').id = 'f-' + f.key;
+    entryFields.appendChild(div);
+  });
+
+  function todayString() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+  document.getElementById('f-date').value = todayString();
+
+  // ---------- Adding a reading ----------
+
+  document.getElementById('entry-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var msg = document.getElementById('entry-message');
+    var entry = { id: Date.now(), date: document.getElementById('f-date').value };
+    var anyValue = false;
+
+    FIELDS.forEach(function (f) {
+      var raw = document.getElementById('f-' + f.key).value.trim();
+      entry[f.key] = raw === '' ? null : Number(raw);
+      if (raw !== '') anyValue = true;
+    });
+
+    if (!entry.date) { msg.textContent = 'Please pick a date.'; return; }
+    if (!anyValue) { msg.textContent = 'Enter at least one reading.'; return; }
+
+    entries.push(entry);
+    if (!save(ENTRIES_KEY, entries)) { entries.pop(); return; }
+    msg.textContent = '';
+    FIELDS.forEach(function (f) { document.getElementById('f-' + f.key).value = ''; });
+    renderTable();
+  });
+
+  // ---------- Showing the table ----------
+
+  function sortedEntries() {
+    // Newest date first. If two readings share a date, the one saved later comes first.
+    return entries.slice().sort(function (a, b) {
+      if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return b.id - a.id;
+    });
+  }
+
+  function renderTable() {
+    var head = document.getElementById('table-head');
+    head.innerHTML = '';
+    ['Date'].concat(FIELDS.map(function (f) { return f.label + unitText(f); }), ['']).forEach(function (text) {
+      var th = document.createElement('th');
+      th.textContent = text;
+      head.appendChild(th);
+    });
+
+    var body = document.getElementById('table-body');
+    body.innerHTML = '';
+    var list = sortedEntries();
+
+    if (list.length === 0) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = FIELDS.length + 2;
+      td.className = 'empty';
+      td.textContent = 'No readings yet.';
+      tr.appendChild(td);
+      body.appendChild(tr);
+      return;
+    }
+
+    list.forEach(function (entry) {
+      var status = PoolRanges.checkEntry(entry, ranges);
+      var tr = document.createElement('tr');
+
+      var dateCell = document.createElement('td');
+      dateCell.textContent = entry.date;
+      tr.appendChild(dateCell);
+
+      FIELDS.forEach(function (f) {
+        var td = document.createElement('td');
+        var s = status[f.key];
+        td.className = s;
+        td.textContent = s === 'missing' ? '' : entry[f.key];
+        if (s === 'low' || s === 'high') {
+          var r = ranges[f.key];
+          td.title = s.toUpperCase() + ': target is ' + r.min + ' to ' + r.max;
+        }
+        tr.appendChild(td);
+      });
+
+      var actionCell = document.createElement('td');
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!confirm('Delete the reading from ' + entry.date + '?')) return;
+        entries = entries.filter(function (e) { return e.id !== entry.id; });
+        save(ENTRIES_KEY, entries);
+        renderTable();
+      });
+      actionCell.appendChild(del);
+      tr.appendChild(actionCell);
+
+      body.appendChild(tr);
+    });
+  }
+
+  // ---------- Range settings ----------
+
+  function renderRangeInputs() {
+    var box = document.getElementById('range-fields');
+    box.innerHTML = '';
+    FIELDS.forEach(function (f) {
+      var row = document.createElement('div');
+      row.className = 'range-row';
+      row.innerHTML =
+        '<div><label></label></div>' +
+        '<div><label>Min</label><input type="number" step="any" data-key="" data-side="min"></div>' +
+        '<div><label>Max</label><input type="number" step="any" data-key="" data-side="max"></div>';
+      row.querySelector('label').textContent = f.label + unitText(f);
+      row.querySelectorAll('input').forEach(function (input) {
+        input.dataset.key = f.key;
+        input.value = ranges[f.key][input.dataset.side];
+      });
+      box.appendChild(row);
+    });
+  }
+
+  document.getElementById('settings-form').addEventListener('submit', function (event) {
+    event.preventDefault();
+    var msg = document.getElementById('settings-message');
+    var next = {};
+    FIELDS.forEach(function (f) { next[f.key] = {}; });
+    document.querySelectorAll('#range-fields input').forEach(function (input) {
+      var raw = input.value.trim();
+      next[input.dataset.key][input.dataset.side] = raw === '' ? NaN : Number(raw);
+    });
+
+    for (var i = 0; i < FIELDS.length; i++) {
+      var error = PoolRanges.validateRange(next[FIELDS[i].key]);
+      if (error) { msg.textContent = FIELDS[i].label + ': ' + error; return; }
+    }
+
+    ranges = next;
+    save(RANGES_KEY, ranges);
+    msg.textContent = '';
+    renderTable();
+  });
+
+  document.getElementById('reset-ranges').addEventListener('click', function () {
+    ranges = PoolRanges.defaultRanges();
+    save(RANGES_KEY, ranges);
+    renderRangeInputs();
+    renderTable();
+  });
+
+  // ---------- CSV export ----------
+
+  function csvCell(value) {
+    if (value === null || value === undefined) return '';
+    var text = String(value);
+    // Wrap in quotes if the text contains a comma, quote, or line break.
+    if (/[",\n\r]/.test(text)) text = '"' + text.replace(/"/g, '""') + '"';
+    return text;
+  }
+
+  document.getElementById('export-btn').addEventListener('click', function () {
+    if (entries.length === 0) { alert('There are no readings to export yet.'); return; }
+    var header = ['Date'].concat(FIELDS.map(function (f) { return f.label + unitText(f); }));
+    var lines = [header.map(csvCell).join(',')];
+    sortedEntries().forEach(function (entry) {
+      var row = [entry.date].concat(FIELDS.map(function (f) { return entry[f.key]; }));
+      lines.push(row.map(csvCell).join(','));
+    });
+
+    // The \uFEFF mark at the start helps Excel read the ° symbol correctly.
+    var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'pool-readings-' + todayString() + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  // ---------- Start ----------
+
+  renderRangeInputs();
+  renderTable();
+</script>
+</body>
+</html>
