@@ -40,6 +40,14 @@ LISTING_STATUSES = ("active", "delisted", "unknown")
 ASSET_TYPES = ("stock", "etf", "cash", "unknown")
 
 
+class ProviderError(RuntimeError):
+    """A provider could not get data (network blocked, bad symbol, API down).
+
+    Raised instead of returning partial or empty data silently, so the run
+    fails loudly with the ticker and endpoint in the message.
+    """
+
+
 @dataclass(frozen=True)
 class Source:
     """Where a piece of data came from. Attached to every provider result.

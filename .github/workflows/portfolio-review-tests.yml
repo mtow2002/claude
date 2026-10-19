@@ -1,0 +1,30 @@
+# Runs the portfolio-review test suite on every push and pull request.
+# The project lives in portfolio-review/, so every step runs from there.
+name: portfolio-review tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: portfolio-review
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: portfolio-review/pyproject.toml
+
+      - name: Install package with dev extras
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run tests (no network needed)
+        run: pytest

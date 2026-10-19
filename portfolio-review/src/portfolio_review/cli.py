@@ -16,6 +16,7 @@ from typing import Sequence
 
 from . import __version__
 from . import commands as commands_pkg
+from .data.base import ProviderError
 
 
 def discover_commands(parser: argparse.ArgumentParser) -> None:
@@ -52,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error(f"command {args.command} has no handler")
     try:
         return int(handler(args) or 0)
-    except (ValueError, FileNotFoundError, FileExistsError, NotImplementedError) as exc:
+    except (ValueError, FileNotFoundError, FileExistsError, NotImplementedError, ProviderError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

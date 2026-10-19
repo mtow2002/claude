@@ -25,6 +25,7 @@ import pandas as pd
 
 from .base import (
     PriceData,
+    ProviderError,
     Profile,
     ProfileData,
     Source,
@@ -59,13 +60,21 @@ class YFinanceProvider:
     def prices(self, ticker: str, start: date, end: date, as_of: date) -> PriceData:
         fetched_at = utc_now()
         # yfinance's end is exclusive, so add one day to include ``end``.
-        raw = self._yf.Ticker(ticker).history(
-            start=start.isoformat(),
-            end=(end + timedelta(days=1)).isoformat(),
-            interval="1d",
-            auto_adjust=False,
-            actions=False,
-        )
+        try:
+            raw = self._yf.Ticker(ticker).history(
+                start=start.isoformat(),
+                end=(end + timedelta(days=1)).isoformat(),
+                interval="1d",
+                auto_adjust=False,
+                actions=False,
+                raise_errors=True,
+            )
+        except Exception as exc:  # noqa: BLE001  (any transport/parse failure)
+            raise ProviderError(
+                f"yfinance could not fetch prices for {ticker} "
+                f"(Ticker.history, {start}..{end}): {type(exc).__name__}: {exc}. "
+                "Check network access to finance.yahoo.com, or use --provider csv with local files."
+            ) from exc
         frame = normalize_price_frame(raw) if raw is not None and len(raw) else empty_price_frame()
         frame = enforce_as_of(frame, as_of)
         source = Source(

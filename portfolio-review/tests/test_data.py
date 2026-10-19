@@ -86,3 +86,26 @@ def test_stub_providers_raise_not_implemented():
             cls().prices("AAA", date(2025, 1, 1), date(2025, 1, 2), date(2025, 1, 2))
         with pytest.raises(NotImplementedError):
             cls().profile("AAA", date(2025, 1, 2))
+
+
+def test_yfinance_network_failure_becomes_provider_error(monkeypatch):
+    """A blocked network must surface as one clear ProviderError, not a traceback."""
+    import sys
+    import types
+
+    from portfolio_review.data.base import ProviderError
+
+    class FakeTicker:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+        def history(self, **kwargs):
+            raise ConnectionError("CONNECT tunnel failed, response 403")
+
+    fake_yf = types.SimpleNamespace(Ticker=FakeTicker)
+    monkeypatch.setitem(sys.modules, "yfinance", fake_yf)
+    from portfolio_review.data.yfinance_provider import YFinanceProvider
+
+    provider = YFinanceProvider()
+    with pytest.raises(ProviderError, match="could not fetch prices for SPY.*403"):
+        provider.prices("SPY", date(2025, 1, 1), date(2025, 1, 31), date(2025, 1, 31))
