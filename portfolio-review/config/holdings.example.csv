@@ -1,0 +1,8 @@
+ticker,asset_type,account,shares,weight,cost_basis,asset_class,note
+AAPL,stock,brokerage,,0.08,150.00,,core position
+MSFT,stock,brokerage,,0.07,280.00,,core position
+VTI,etf,ira,,0.30,200.00,,total US market
+VXUS,etf,ira,,0.15,55.00,intl_equity,international
+BND,etf,ira,,0.20,75.00,bonds,bonds
+SGOV,etf,brokerage,,0.12,100.00,cash,treasury bills as cash
+CASH,cash,brokerage,,0.08,,,money market sweep

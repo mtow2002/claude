@@ -1,0 +1,6 @@
+ticker,name,sector,industry,asset_type,listing_status,pe_ratio,price_to_book,return_on_equity,debt_to_equity,profit_margin
+AAA,Alpha Analytics Inc,Technology,Software,stock,active,40.0,8.0,0.30,50.0,0.25
+BBB,Beta Biomed Corp,Healthcare,Pharmaceuticals,stock,active,15.0,2.0,0.12,80.0,0.10
+CCC,Core Bond ETF,Fixed Income,Bond Fund,etf,active,,,,,
+DDD,Delta Defunct Co,Energy,Oil Services,stock,delisted,8.0,0.5,-0.20,250.0,-0.15
+SPY,S&P 500 Index ETF,Large Blend,Index Fund,etf,active,,,,,

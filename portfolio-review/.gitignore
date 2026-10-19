@@ -1,0 +1,20 @@
+# Secrets: real API keys live in .env, which is never committed.
+.env
+
+# Your real policy and holdings are personal. Only the *.example files ship.
+config/policy.yaml
+config/holdings.csv
+
+# Downloaded market data and run outputs are reproducible, so not versioned.
+data/cache/
+runs/
+
+# Python build and test leftovers.
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.venv/
+venv/

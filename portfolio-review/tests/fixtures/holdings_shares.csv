@@ -1,0 +1,5 @@
+ticker,asset_type,account,shares,weight,cost_basis,asset_class,note
+AAA,stock,brokerage,10,,,,
+BBB,stock,brokerage,20,,,,
+CCC,etf,ira,5,,,bonds,
+CASH,cash,brokerage,1000,,,,dollar amount in shares column

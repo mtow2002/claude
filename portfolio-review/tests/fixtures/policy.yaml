@@ -1,0 +1,36 @@
+targets:
+  asset_class:
+    us_equity: 0.50
+    intl_equity: 0.10
+    bonds: 0.25
+    cash: 0.15
+limits:
+  max_single_position_weight: 0.25
+  max_sector_weight: 0.35
+  max_single_etf_weight: 0.30
+  min_cash_weight: 0.05
+  warn_fraction: 0.90
+rebalance:
+  band_absolute: 0.05
+  breach_multiple: 2.0
+risk:
+  max_annualized_volatility: 0.20
+  max_drawdown_tolerance: 0.25
+factor_weights:
+  momentum: 0.30
+  value: 0.15
+  quality: 0.15
+  low_volatility: 0.20
+  trend: 0.20
+classification:
+  default_by_asset_type:
+    stock: us_equity
+    etf: us_equity
+    cash: cash
+  by_ticker:
+    CCC: bonds
+settings:
+  benchmark: SPY
+  risk_free_rate: 0.02
+  lookback_days: 400
+  stale_price_days: 10

@@ -1,0 +1,93 @@
+# =============================================================================
+# policy.example.yaml : YOUR PORTFOLIO VISION, IN ONE FILE
+#
+# Copy this to config/policy.yaml (gitignored) and edit the numbers.
+# Every rule here is checked on every run, and the report lists drift from it.
+#
+# Conventions:
+#   * All weights are fractions of the total portfolio: 0.10 means 10%.
+#   * "weight" always means portfolio weight, never share count or dollars.
+#   * Nothing here is advice. It is the owner's own stated intent.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. Target asset-class mix. Must sum to 1.0.
+#    Each holding is mapped to one of these four classes (see "classification").
+# -----------------------------------------------------------------------------
+targets:
+  asset_class:
+    us_equity: 0.55
+    intl_equity: 0.15
+    bonds: 0.20
+    cash: 0.10
+
+# -----------------------------------------------------------------------------
+# 2. Concentration limits. Each produces a finding when crossed.
+#    A "warn" fires at warn_fraction of the limit (default 0.90 = 90% of limit),
+#    a "breach" fires at or above the limit itself.
+# -----------------------------------------------------------------------------
+limits:
+  max_single_position_weight: 0.10   # any one stock or ETF
+  max_sector_weight: 0.30            # any one sector (cash excluded)
+  max_single_etf_weight: 0.25        # any one ETF (ETFs are diversified, so higher)
+  min_cash_weight: 0.03              # keep at least this much dry powder
+  warn_fraction: 0.90                # warn when within 10% of a limit
+
+# -----------------------------------------------------------------------------
+# 3. Rebalance bands around each asset-class target.
+#    band_absolute is in weight points: target 0.55 with band 0.05 means the
+#    acceptable range is 0.50 to 0.60. Outside the band = "warn".
+#    Outside breach_multiple x band (here 0.10 away) = "breach".
+# -----------------------------------------------------------------------------
+rebalance:
+  band_absolute: 0.05
+  breach_multiple: 2.0
+
+# -----------------------------------------------------------------------------
+# 4. Portfolio-level risk limits, measured over the lookback window.
+# -----------------------------------------------------------------------------
+risk:
+  max_annualized_volatility: 0.18    # 18% annualized standard deviation
+  max_drawdown_tolerance: 0.25       # 25% peak-to-trough decline
+
+# -----------------------------------------------------------------------------
+# 5. Factor weights for the composite score. Must sum to 1.0.
+#    Each factor is scored 0..100 across the holdings universe; the composite
+#    is the weighted average. See docs/METHODOLOGY.md for each formula.
+# -----------------------------------------------------------------------------
+factor_weights:
+  momentum: 0.30
+  value: 0.15
+  quality: 0.15
+  low_volatility: 0.20
+  trend: 0.20
+
+# -----------------------------------------------------------------------------
+# 6. Classification: how a holding maps to an asset class.
+#    Priority: holdings.csv asset_class column (if filled) > by_ticker here
+#    > default_by_asset_type. Edit by_ticker as you add funds.
+# -----------------------------------------------------------------------------
+classification:
+  default_by_asset_type:
+    stock: us_equity
+    etf: us_equity
+    cash: cash
+  by_ticker:
+    VXUS: intl_equity
+    VEA: intl_equity
+    VWO: intl_equity
+    BND: bonds
+    AGG: bonds
+    BNDX: bonds
+    SGOV: cash
+    BIL: cash
+
+# -----------------------------------------------------------------------------
+# 7. Analysis settings.
+# -----------------------------------------------------------------------------
+settings:
+  benchmark: SPY                 # CLI --benchmark overrides this
+  risk_free_rate: 0.04           # annual, used in Sharpe ratio
+  lookback_days: 400             # calendar days of history to pull before as_of
+  stale_price_days: 10           # a last price older than this (calendar days
+                                 # before as_of) marks the ticker stale/delisted
