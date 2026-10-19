@@ -111,10 +111,36 @@ scoped to `mtow2002/claude` only. Matt needs to create
 `mtow2002/portfolio-review` (private) from the GitHub web UI or from a
 desktop `gh` login.
 
+### Retry after Matt reported being logged in (same day, later)
+
+Re-ran every blocked step from the same session. All still fail:
+
+```
+gh auth status
+  -> The token in GH_TOKEN is invalid.   (exit 1)
+
+gh repo create mtow2002/portfolio-review --private --description "..."
+  -> HTTP 403: This GitHub API path is not available: sessions are bound to
+     their configured repositories.   (exit 1)
+
+GitHub connector (Claude GitHub App) create_repository name=portfolio-review private=true
+  -> 403 Resource not accessible by integration
+     (GitHub Apps cannot create repositories under a personal account)
+
+curl https://query2.finance.yahoo.com/...
+  -> curl: (56) CONNECT tunnel failed, response 403
+```
+
+Conclusion: the repository has to be created by Matt in the GitHub web UI
+(New repository -> name `portfolio-review` -> Private), or from a desktop
+terminal where `gh auth login` has been run. The cloud session cannot do it
+by any route. Once it exists, a session with that repo in scope can do the
+migration (ROADMAP item 7).
+
 ### Blocked
 
-* Live Yahoo Finance fetch (proxy 403).
-* Creating the `portfolio-review` repository (session scope).
+* Live Yahoo Finance fetch (proxy 403, confirmed twice).
+* Creating the `portfolio-review` repository (all three routes refused, see above).
 
 ### Next steps
 
