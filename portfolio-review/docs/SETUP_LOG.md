@@ -69,9 +69,9 @@ pip install -e ".[dev]"   (fresh venv, Python 3.13.16 in this container; project
 pytest                     75 passed
 ```
 
-CI pins Python 3.11; it was not run locally because this container only has
-3.13. No 3.13-only syntax or APIs were used, but the first CI run on the PR is
-the real check.
+CI pins Python 3.11; it could not be run locally because this container only
+has 3.13. The first GitHub Actions run on the PR branch (run 39204715717)
+installed and passed all tests on 3.11.
 
 ### Live run attempt
 
@@ -115,7 +115,6 @@ desktop `gh` login.
 
 * Live Yahoo Finance fetch (proxy 403).
 * Creating the `portfolio-review` repository (session scope).
-* Running CI locally on Python 3.11 (only 3.13 available here).
 
 ### Next steps
 
