@@ -150,3 +150,10 @@ migration (ROADMAP item 7).
    ROADMAP item 7 (move the folder, simplify the workflow).
 3. Parallel sessions: Alpha Vantage provider, Massive provider, BigQuery
    store, backtesting, HTML report, Windows scheduling (ROADMAP items 1 to 6).
+
+## 2026-10-19 (later): migrated
+
+This folder was migrated to https://github.com/mtow2002/portfolio-review
+with its full commit history (`git subtree split`). Treat this copy as frozen;
+all further development happens in that repository. See its
+`docs/SETUP_LOG.md` for the migration details.
