@@ -93,7 +93,7 @@ def read_holdings_csv(path: Path | str) -> tuple[pd.DataFrame, str]:
 
     for col in ("shares", "weight", "cost_basis"):
         text = df[col]
-        numeric = pd.to_numeric(text.replace("", None), errors="coerce")
+        numeric = pd.to_numeric(text.where(text != ""), errors="coerce")
         # A filled cell that did not parse is an error, not a silent blank.
         bad_mask = (text != "") & numeric.isna()
         if bad_mask.any():
